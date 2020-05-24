@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>d77297c4-aa1b-466f-8a0f-cfa0c89eb9c8</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>pyCEDFS.py</StartupFile>
+    <StartupFile>tests\module1.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -25,9 +25,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="pyCEDFS.py" />
+    <Compile Include="tests\module1.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="lib\" />
+    <Folder Include="tests\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="lib\Cfs.c" />

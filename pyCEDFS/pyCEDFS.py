@@ -60,7 +60,7 @@ class CFS(object):
         _fvars = ctypes.c_short(14)
         _ds = ctypes.c_ushort(14)
         test = CFS64.GetFileInfo(self._fileHandle, ctypes.byref(_channels),ctypes.byref(_dsvars), ctypes.byref(_fvars), ctypes.byref(_ds))
-        print (_channels.value)
+        
         self.channels = _channels.value
         self.datasetVarsCount = _dsvars.value
         self.fileVarsCount = _fvars.value
@@ -236,14 +236,3 @@ class CFS(object):
         
 
 
-def main():
-    test = CFS('debug.cfs')
-    test._debug_plot()
-    return
-
-
-
-
-
-if __name__ == "__main__":
-    main()
