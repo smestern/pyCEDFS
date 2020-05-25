@@ -9,7 +9,7 @@ from pathlib import PureWindowsPath
 import hashlib
 import ctypes
 import matplotlib.pyplot as plt
-# Load the shared library into c types.
+# Load the library into c types.
 CFS64 = ctypes.CDLL(".//lib//CFS64c.dll")
 import logging
 logging.basicConfig(level=logging.WARN)
@@ -62,6 +62,7 @@ class CFS(object):
         test = CFS64.GetFileInfo(self._fileHandle, ctypes.byref(_channels),ctypes.byref(_dsvars), ctypes.byref(_fvars), ctypes.byref(_ds))
         
         self.channels = _channels.value
+        self.channelList = np.arange(1, _channels.value)
         self.datasetVarsCount = _dsvars.value
         self.fileVarsCount = _fvars.value
         self.datasets = _ds.value
@@ -79,6 +80,11 @@ class CFS(object):
         self.dataX, self.dataY = self._read_data()
         #close the file?
         CFS64.CloseCFSFile(self._fileHandle)
+        return
+    def _build_attr_from_dict(self):
+
+
+
         return
 
     def _build_file_vars(self):
@@ -225,14 +231,15 @@ class CFS(object):
         
         return dataX, dataY
 
-    def _debug_plot(self):
+    def _debug_plot(self, fignum=0):
             
-            fig, axes = plt.subplots(nrows = self.channels)
+            fig, axes = plt.subplots(nrows = self.channels, num=fignum)
             for x in np.arange(self.channels):
                 for a in np.arange(self.sweeps):
                     axes[x].plot(self.dataX[x][a,:], self.dataY[x][a,:])
 
-            plt.show()
+    
+            
         
 
 
