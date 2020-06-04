@@ -37,6 +37,7 @@
     <Folder Include="tests\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="CFS64c.dll" />
     <Content Include="lib\Cfs.c" />
     <Content Include="lib\Cfs.h" />
     <Content Include="lib\CFS32.dll" />
