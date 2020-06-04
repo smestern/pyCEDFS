@@ -40,7 +40,6 @@
     <Content Include="lib\Cfs.c" />
     <Content Include="lib\Cfs.h" />
     <Content Include="lib\CFS32.dll" />
-    <Content Include="CFS64c.dll" />
     <Content Include="lib\CFS64c.dll" />
     <Content Include="lib\SIMPLER.C" />
     <Content Include="lib\SIMPLEW.C" />
