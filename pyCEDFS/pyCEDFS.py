@@ -10,7 +10,7 @@ import hashlib
 import ctypes
 import matplotlib.pyplot as plt
 # Load the shared library into c types.
-dll_path = os.path.abspath("lib//CFS64c.dll")
+dll_path = os.path.abspath("CFS64c.dll")
 CFS64 = ctypes.CDLL(dll_path)
 import logging
 logging.basicConfig(level=logging.WARN)
