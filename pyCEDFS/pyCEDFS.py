@@ -10,7 +10,8 @@ import hashlib
 import ctypes
 import matplotlib.pyplot as plt
 # Load the shared library into c types.
-CFS64 = ctypes.CDLL(".//lib//CFS64c.dll")
+dll_path = os.path.abspath("lib//CFS64c.dll")
+CFS64 = ctypes.CDLL(dll_path)
 import logging
 logging.basicConfig(level=logging.WARN)
 log = logging.getLogger(__name__)
@@ -191,9 +192,9 @@ class CFS(object):
             ch_x =[]
             ch_y = []
             for x in np.arange(1,self.datasets +1):
-                channel_p = self.datasetChaVars[ch][x]['points'] * 2
-                dtype = dataVarTypes[self.chVars[ch]['Type']][1]
-                _dataarray = (dtype * channel_p)()
+                channel_p = self.datasetChaVars[ch][x]['points'] * 2 ##Pull the datasize. the points are multiplied by 2 to reflect the x and Y data which are stacked horizontally.
+                dtype = dataVarTypes[self.chVars[ch]['Type']][1] #the datatype of the channel
+                _dataarray = (dtype * channel_p)() ##Declare the array in memory for the function to return data into
 
                 pointsRead = chanData(self._fileHandle, 
                           ctypes.c_short(ch), ##Channel
@@ -202,15 +203,15 @@ class CFS(object):
                                  ctypes.c_short(0), ###Number of elements to pull 0==all
                                 _dataarray, ###Dump into this array
                                  ctypes.c_long(channel_p * 2))##Number of data points provided
-                data = np.ctypeslib.as_array(_dataarray)
-                ds_y = data[:int(channel_p/2)]
-                ds_x = data[int(channel_p/2):]
+                data = np.ctypeslib.as_array(_dataarray) #convert the data into a numpy array
+                ds_y = data[:int(channel_p/2)] ##first half of the data is the Y value
+                ds_x = data[int(channel_p/2):] ##second half of the data appears to be X value, however if data is EQUALSPACED this is all zeros and we generate it later. 
                 
                 yscale = self.datasetChaVars[ch][x]['yscale']
                 yoffset = self.datasetChaVars[ch][x]['yoffset']
                 xscale = self.datasetChaVars[ch][x]['xscale']
                 xoffset = self.datasetChaVars[ch][x]['xoffset']
-                ds_y = ds_y * yscale + yoffset
+                ds_y = ds_y * yscale + yoffset  #data is in int format must be scaled and offset with the variables 
                 #ds_x = ds_x * xscale
                 ds_x = np.cumsum(np.hstack((xoffset,np.full(int(channel_p/2)-1,xscale))))
                 if pointsRead > 0:

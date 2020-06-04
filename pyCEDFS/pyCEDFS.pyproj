@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>d77297c4-aa1b-466f-8a0f-cfa0c89eb9c8</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>tests\module1.py</StartupFile>
+    <StartupFile>tests\iotest.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -24,10 +24,12 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="converter.py" />
     <Compile Include="pyCEDFS.py" />
-    <Compile Include="tests\module1.py">
+    <Compile Include="tests\iotest.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="__init__.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="lib\" />
