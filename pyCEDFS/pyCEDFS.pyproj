@@ -25,6 +25,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="converter.py" />
+    <Compile Include="lib\__init__.py" />
     <Compile Include="pyCEDFS.py" />
     <Compile Include="tests\iotest.py">
       <SubType>Code</SubType>
