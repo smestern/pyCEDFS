@@ -9,10 +9,10 @@ from pathlib import PureWindowsPath
 import hashlib
 import ctypes
 import matplotlib.pyplot as plt
-import importlib
+import pkg_resources
 
 # Load the shared library into c types.
-dll_path = importlib.resources.path(__name__,"CFS64c.dll")
+dll_path = pkg_resources.resource_filename(__name__,"CFS64c.dll")
 
 CFS64 = ctypes.CDLL(dll_path)
 import logging

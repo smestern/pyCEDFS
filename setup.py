@@ -15,7 +15,6 @@ setup(
     install_requires=[	
        'matplotlib>=2.1.0',
        'numpy>=1.17',
-	'importlib>=3.7',
 	],
 	include_package_data=True,
 	package_data={
