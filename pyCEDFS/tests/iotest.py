@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    test = pyCEDFS.CFS('debug.cfs')
+    test = pyCEDFS.CFS('C:\\Users\\SMest\\Documents\\Signal Demo\\Data\\Actions.cfs')
+    #test = pyCEDFS.CFS('debug.cfs')
     test._debug_plot()
+    plt.legend()
     plt.show()
     return
 

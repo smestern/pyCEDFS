@@ -175,7 +175,7 @@ class CFS(object):
         _xoffset = ctypes.c_float()
         for ch in np.arange(self.channels):
             ds_dict = []
-            for x in np.arange(1,self.datasets+2):
+            for x in np.arange(1,self.datasets+1):
                 CFS64.GetDSChan(self._fileHandle, 
                                ctypes.c_short(ch), ##Channel
                                ctypes.c_ushort(x),
@@ -196,17 +196,17 @@ class CFS(object):
         dataX = []
         dataY = []
         chanData = CFS64.GetChanData
-        chanData.argtypes = (ctypes.c_short,ctypes.c_short,ctypes.c_ushort,ctypes.c_long,ctypes.c_short, ctypes.POINTER(ctypes.c_int16), ctypes.c_long)
+        
         for ch in np.arange(0, self.channels):
             ch_x =[]
             ch_y = []
             for x in np.arange(1,self.datasets +1):
-                channel_p = self.datasetChaVars[ch][x]['points'] * 2 ##Pull the datasize. the points are multiplied by 2 to reflect the x and Y data which are stacked horizontally.
+                channel_p = self.datasetChaVars[ch][x-1]['points'] * 2 ##Pull the datasize. the points are multiplied by 2 to reflect the x and Y data which are stacked horizontally.
                 dtype = dataVarTypes[self.chVars[ch]['Type']][1] #the datatype of the channel
                 _dataarray = (dtype * channel_p)() ##Declare the array in memory for the function to return data into
-
+                chanData.argtypes = (ctypes.c_short,ctypes.c_short,ctypes.c_ushort,ctypes.c_long,ctypes.c_short, ctypes.POINTER(ctypes.c_int16), ctypes.c_long)
                 pointsRead = chanData(self._fileHandle, 
-                          ctypes.c_short(ch), ##Channel
+                                ctypes.c_short(ch), ##Channel
                                  ctypes.c_ushort(x), ##DS
                                  ctypes.c_long(0), ##first element
                                  ctypes.c_short(0), ###Number of elements to pull 0==all
@@ -216,14 +216,17 @@ class CFS(object):
                 ds_y = data[:int(channel_p/2)] ##first half of the data is the Y value
                 ds_x = data[int(channel_p/2):] ##second half of the data appears to be X value, however if data is EQUALSPACED this is all zeros and we generate it later. 
                 
-                yscale = self.datasetChaVars[ch][x]['yscale']
-                yoffset = self.datasetChaVars[ch][x]['yoffset']
-                xscale = self.datasetChaVars[ch][x]['xscale']
-                xoffset = self.datasetChaVars[ch][x]['xoffset']
-                ds_y = ds_y * yscale + yoffset  #data is in int format must be scaled and offset with the variables 
-                #ds_x = ds_x * xscale
-                ds_x = np.cumsum(np.hstack((xoffset,np.full(int(channel_p/2)-1,xscale))))
+                yscale = self.datasetChaVars[ch][x-1]['yscale']
+                yoffset = self.datasetChaVars[ch][x-1]['yoffset']
+                xscale = self.datasetChaVars[ch][x-1]['xscale']
+                xoffset = self.datasetChaVars[ch][x-1]['xoffset']
                 if pointsRead > 0:
+                    if dtype != ctypes.c_long:
+                        ds_y = ds_y * yscale + yoffset  #data is in int format must be scaled and offset with the variables 
+                    #ds_x = ds_x * xscale
+
+                    ds_x = np.cumsum(np.hstack((xoffset,np.full(int(channel_p/2)-1,xscale))))
+                
 
                     ch_x.append(ds_x)
                
@@ -240,7 +243,7 @@ class CFS(object):
             fig, axes = plt.subplots(nrows = self.channels, num=fignum)
             for x in np.arange(self.channels):
                 for a in np.arange(self.sweeps):
-                    axes[x].plot(self.dataX[x][a,:], self.dataY[x][a,:])
+                    axes[x].plot(self.dataX[x][a,:], self.dataY[x][a,:], label=f"{a}")
 
     
             
