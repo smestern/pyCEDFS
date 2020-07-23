@@ -204,7 +204,7 @@ class CFS(object):
                 channel_p = self.datasetChaVars[ch][x-1]['points'] * 2 ##Pull the datasize. the points are multiplied by 2 to reflect the x and Y data which are stacked horizontally.
                 dtype = dataVarTypes[self.chVars[ch]['Type']][1] #the datatype of the channel
                 _dataarray = (dtype * channel_p)() ##Declare the array in memory for the function to return data into
-                chanData.argtypes = (ctypes.c_short,ctypes.c_short,ctypes.c_ushort,ctypes.c_long,ctypes.c_short, ctypes.POINTER(ctypes.c_int16), ctypes.c_long)
+                chanData.argtypes = (ctypes.c_short,ctypes.c_short,ctypes.c_ushort,ctypes.c_long,ctypes.c_short, ctypes.POINTER(dtype), ctypes.c_long)
                 pointsRead = chanData(self._fileHandle, 
                                 ctypes.c_short(ch), ##Channel
                                  ctypes.c_ushort(x), ##DS
