@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import pkg_resources
 
 # Load the shared library into c types.
-dll_path = pkg_resources.resource_filename(__name__,"CFS64.dll")
+dll_path = pkg_resources.resource_filename(__name__,"CFS64c.dll")
 
 CFS64 = ctypes.CDLL(dll_path)
 import logging
