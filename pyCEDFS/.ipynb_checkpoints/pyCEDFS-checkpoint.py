@@ -34,20 +34,20 @@ class CFS(object):
     
     """
 
-    def __init__(self, CFSFilePath):
+    def __init__(self, cfsFilePath):
 
-        self.CFSFilePath = os.path.abspath(CFSFilePath)
-        self.CFSFolderPath = os.path.dirname(self.CFSFilePath)
+        self.cfsFilePath = os.path.abspath(cfsFilePath)
+        self.cfsFolderPath = os.path.dirname(self.cfsFilePath)
 
 
-        if not os.path.exists(self.CFSFilePath):
-            raise ValueError("CFS file does not exist: %s" % self.CFSFilePath)
-        self.CFSID = os.path.splitext(os.path.basename(self.CFSFilePath))[0]
+        if not os.path.exists(self.cfsFilePath):
+            raise ValueError("CFS file does not exist: %s" % self.cfsFilePath)
+        self.CFSID = os.path.splitext(os.path.basename(self.cfsFilePath))[0]
         
         ##Open the file and pass the handle ##
         open = CFS64.OpenCFSFile
         open.restype = ctypes.c_short
-        C_file = ctypes.create_string_buffer(self.CFSFilePath.encode())
+        C_file = ctypes.create_string_buffer(self.cfsFilePath.encode())
         handle = open(C_file, 0, 0)
         self._fileHandle = handle
         log.debug(f"Loaded file: {self.CFSID} with handle: {self._fileHandle}")

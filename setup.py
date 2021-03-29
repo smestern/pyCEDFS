@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='pyCEDFS',
-    version='0.1.3',
+    version='0.1.4',
     author='Smestern',
     author_email='n/a',
     packages=['pyCEDFS'],

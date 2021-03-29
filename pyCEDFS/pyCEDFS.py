@@ -10,16 +10,24 @@ import hashlib
 import ctypes
 import matplotlib.pyplot as plt
 import pkg_resources
-
-# Load the shared library into c types.
+import uuid
+# Load the shared library into c types. 
 dll_path = pkg_resources.resource_filename(__name__,"CFS64.dll")
-
+#TODO // Figure out how to handle 32-bit systems, linux, and so on
 CFS64 = ctypes.CDLL(dll_path)
+
 import logging
 logging.basicConfig(level=logging.WARN)
 log = logging.getLogger(__name__)
 
-dataVarTypes = [('INT1', ctypes.c_int), ('WRD1', ctypes.c_ushort),('INT2', ctypes.c_int16),('WRD2', ctypes.c_ushort),('INT4', ctypes.c_int32), ('RL4', ctypes.c_longdouble), ('RL8', ctypes.c_longdouble), ( 'LSTR', ctypes.create_string_buffer)]
+dataVarTypes = [('INT1', ctypes.c_int), 
+('WRD1', ctypes.c_ushort),
+('INT2', ctypes.c_int16),
+('WRD2', ctypes.c_ushort),
+('INT4', ctypes.c_int32), 
+('RL4', ctypes.c_longdouble),
+('RL8', ctypes.c_longdouble), 
+('LSTR', ctypes.create_string_buffer)]
 #define INT1    0                            
 #define WRD1    1
 #define INT2    2
@@ -31,23 +39,30 @@ dataVarTypes = [('INT1', ctypes.c_int), ('WRD1', ctypes.c_ushort),('INT2', ctype
 
 class CFS(object):
     """
-    
+    CFS File object. Represents a CFS File containing both sweep information and metadata (if availible).
+    ______
+    Init:
+    cfsFilePath -> A str or os.path object pointing towards a CFS (.cfs) file
+    ______
+    Return:
+    CFS (obj) -> A python object with the CFS data as attributes. Sweep data can be accessed by CFS.dataX, CFS.dataY, CFS.dataC
+
     """
 
-    def __init__(self, CFSFilePath):
+    def __init__(self, cfsFilePath):
 
-        self.CFSFilePath = os.path.abspath(CFSFilePath)
-        self.CFSFolderPath = os.path.dirname(self.CFSFilePath)
+        self.cfsFilePath = os.path.abspath(cfsFilePath)
+        self.cfsFolderPath = os.path.dirname(self.cfsFilePath)
 
 
-        if not os.path.exists(self.CFSFilePath):
-            raise ValueError("CFS file does not exist: %s" % self.CFSFilePath)
-        self.CFSID = os.path.splitext(os.path.basename(self.CFSFilePath))[0]
+        if not os.path.exists(self.cfsFilePath):
+            raise ValueError("CFS file does not exist: %s" % self.cfsFilePath)
+        self.CFSID = os.path.splitext(os.path.basename(self.cfsFilePath))[0]
         
         ##Open the file and pass the handle ##
         open = CFS64.OpenCFSFile
         open.restype = ctypes.c_short
-        C_file = ctypes.create_string_buffer(self.CFSFilePath.encode())
+        C_file = ctypes.create_string_buffer(self.cfsFilePath.encode())
         handle = open(C_file, 0, 0)
         self._fileHandle = handle
         log.debug(f"Loaded file: {self.CFSID} with handle: {self._fileHandle}")
@@ -78,12 +93,14 @@ class CFS(object):
         self.datasetChaVars = self._build_dsch_vars()
         self.sweeps = self.datasets ##Number of ds == num sweeps?
         self.sweepList = np.arange(1,_ds.value+1)
-
+        
 
         ## Try to read sweep data ##
         self.dataX, self.dataY = self._read_data()
         #close the file?
         CFS64.CloseCFSFile(self._fileHandle)
+        self._populate_attributes()
+        self.setSweep(0)
         return
     def _build_attr_from_dict(self):
 
@@ -160,7 +177,7 @@ class CFS(object):
         _other = ctypes.c_short()
         for ch in np.arange(self.channels):
             _ch = ctypes.c_short(ch)
-            CFS64.GetFileChan(self._fileHandle, _ch, _channame, _xunits, _yunits, ctypes.byref(_type), ctypes.byref(_kind), ctypes.byref(_spacing), ctypes.byref(_other))
+            CFS64.GetFileChan(self._fileHandle, _ch, _channame, _yunits, _xunits, ctypes.byref(_type), ctypes.byref(_kind), ctypes.byref(_spacing), ctypes.byref(_other))
             dict = {'Channel': ch, 'Channel Name': _channame.value.decode(), 'X Units': _xunits.value.decode(), 'Y Units': _yunits.value.decode(), 'Type': _type.value, 'Kind': _kind.value, 'Spacing': _spacing.value, 'Other': _other.value}
             ch_vars.append(dict)
         return ch_vars
@@ -231,19 +248,87 @@ class CFS(object):
                     ch_x.append(ds_x)
                
                     ch_y.append(ds_y)
-            ch_x = np.vstack(ch_x)
-            ch_y = np.vstack(ch_y)
+            try:
+                ch_x = np.vstack(ch_x)
+                ch_y = np.vstack(ch_y)
+            except:
+                pass
             dataX.append(ch_x)
             dataY.append(ch_y)
         
         return dataX, dataY
 
     def _debug_plot(self, fignum=0, figsize=(10,10)):
-            
             fig, axes = plt.subplots(nrows = self.channels, num=fignum, figsize=figsize)
             for x in np.arange(self.channels):
                 for a in np.arange(self.sweeps):
-                    axes[x].plot(self.dataX[x][a,:], self.dataY[x][a,:], label=f"{a}")
+                    try:
+                        axes[int(x)].plot(self.dataX[int(x)][int(a)], self.dataY[int(x)][int(a)], label=f"{a}")
+                    except:
+                        print(f"Error Plotting channel {x} sweep {a}")
+
+
+    ''' Below are functions adapting pyABF functionality. Ideally this allows the user to pass the CFS object
+    thru the same pipeline as ABF '''
+    
+    def __initize_sweep(self):
+        pass
+
+    def _populate_attributes(self):
+        ''' Populates attributes found on the ABF object from pyabf. Ideally
+        ensuring that the CFS object can be put through the same pipeline as pyabf objects '''
+        self.sweepCount = len(self.sweepList)
+        self.channelCount = len(self.channelList) + 1
+        self.protocol = "Unknown"
+        self.cfsDateTime = datetime.datetime.fromtimestamp(os.path.getmtime(self.cfsFilePath))
+        self.cfsFileComment = self.fileComment
+        #Create a GUID on the fly
+        self.fileGUID = str(uuid.uuid4())
+        self.fileUUID = self.fileGUID
+
+    def setSweep(self, sweepNumber, channel=None):
+
+        if channel is None:
+            channel = 0
+
+        # basic error checking
+        if not (sweepNumber + 1) in self.sweepList:
+            msg = "Sweep %d not available (must be 0 - %d)" % (
+                sweepNumber, self.sweepCount-1)
+            raise ValueError(msg)
+        #if not channel in self.channelList:
+         #   msg = "Channel %d not available (must be 0 - %d)" % (
+          #      channel, self.channelCount-1)
+           # raise ValueError(msg)
+
+        self.sweepNumber = sweepNumber
+        self.sweepChannel = channel
+        self.sweepUnitsY = self.chVars[channel]['Y Units'].split(" ")[0]
+        self.sweepUnitsC = self.chVars[0]['Y Units'].split(" ")[0]
+        self.sweepUnitsX = "sec"
+
+    
+        # standard labels
+        self.sweepLabelY = "{} ({})".format(
+            self.chVars[channel]['Channel Name'], self.chVars[channel]['Y Units'])
+        self.sweepLabelC = "{} ({})".format(
+            self.chVars[0]['Channel Name'], self.chVars[0]['Y Units'])
+        self.sweepLabelX = "Time (seconds)"
+        self.sweepLabelD = "Digital Output (V)"
+
+        # use fancy labels for known units
+        if self.sweepUnitsY == "pA":
+            self.sweepLabelY = "Clamp Current (pA)"
+            self.sweepLabelC = "Membrane Potential (mV)"
+        elif self.sweepUnitsY == "mV":
+            self.sweepLabelY = "Membrane Potential (mV)"
+            self.sweepLabelC = "Applied Current (pA)"
+
+        self.sweepY = self.dataY[channel][sweepNumber]
+        self.sweepX = self.dataX[channel][sweepNumber]
+        self.sweepC = self.dataY[0][sweepNumber]
+
+        self.sweepPointCount = len(self.dataY[channel][sweepNumber])
 
     
             
