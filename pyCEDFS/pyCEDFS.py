@@ -10,7 +10,7 @@ import hashlib
 import ctypes
 import matplotlib.pyplot as plt
 import pkg_resources
-
+import uuid
 # Load the shared library into c types. 
 dll_path = pkg_resources.resource_filename(__name__,"CFS64.dll")
 #TODO // Figure out how to handle 32-bit systems, linux, and so on
@@ -248,8 +248,11 @@ class CFS(object):
                     ch_x.append(ds_x)
                
                     ch_y.append(ds_y)
-            ch_x = np.vstack(ch_x)
-            ch_y = np.vstack(ch_y)
+            try:
+                ch_x = np.vstack(ch_x)
+                ch_y = np.vstack(ch_y)
+            except:
+                pass
             dataX.append(ch_x)
             dataY.append(ch_y)
         
@@ -259,7 +262,10 @@ class CFS(object):
             fig, axes = plt.subplots(nrows = self.channels, num=fignum, figsize=figsize)
             for x in np.arange(self.channels):
                 for a in np.arange(self.sweeps):
-                    axes[x].plot(self.dataX[x][a,:], self.dataY[x][a,:], label=f"{a}")
+                    try:
+                        axes[int(x)].plot(self.dataX[int(x)][int(a)], self.dataY[int(x)][int(a)], label=f"{a}")
+                    except:
+                        print(f"Error Plotting channel {x} sweep {a}")
 
 
     ''' Below are functions adapting pyABF functionality. Ideally this allows the user to pass the CFS object
@@ -274,13 +280,16 @@ class CFS(object):
         self.sweepCount = len(self.sweepList)
         self.channelCount = len(self.channelList) + 1
         self.protocol = "Unknown"
-        self.cfsDateTime = os.path.getmtime(self.cfsFilePath)
+        self.cfsDateTime = datetime.datetime.fromtimestamp(os.path.getmtime(self.cfsFilePath))
         self.cfsFileComment = self.fileComment
+        #Create a GUID on the fly
+        self.fileGUID = str(uuid.uuid4())
+        self.fileUUID = self.fileGUID
 
     def setSweep(self, sweepNumber, channel=None):
 
         if channel is None:
-            channel = self.channelList[0]
+            channel = 0
 
         # basic error checking
         if not (sweepNumber + 1) in self.sweepList:

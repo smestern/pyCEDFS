@@ -351,9 +351,9 @@ class CFSConverter:
         session_start_time = datetime.combine(
             self.refcfs.cfsDateTime.date(), self.refcfs.cfsDateTime.time(), tzinfo=tzlocal()
         )
-        creatorName = self.refcfs._stringsIndexed.uCreatorName
-        creatorVersion = formatVersion(self.refcfs.creatorVersion)
-        experiment_description = f"{creatorName} v{creatorVersion}"
+        creatorName = " "
+        creatorVersion = " "
+        experiment_description = f" "
         source_script_file_name = "conversion.py"
         source_script = json.dumps(getPackageInfo(), sort_keys=True, indent=4)
         session_id = PLACEHOLDER
@@ -374,8 +374,8 @@ class CFSConverter:
         Create a pynwb Device object from the cfs file contents.
         """
 
-        digitizer = self.refcfs._protocolSection.sDigitizerType
-        telegraph = self.refcfs._adcSection.sTelegraphInstrument[0]
+        digitizer = self.refcfs.fileVars[0]['desc']
+        telegraph = self.refcfs.fileVars[0]['desc']
 
         return Device(f"{digitizer} with {telegraph}")
 
@@ -413,9 +413,6 @@ class CFSConverter:
             for sweep in range(cfs.sweepCount):
                 cycle_id = createCycleID([file_index, sweep], total=self.totalSeriesCount)
                 for channel in range(cfs.channelCount):
-
-                    if not cfs._dacSection.nWaveformEnable[channel]:
-                        continue
 
                     cfs.setSweep(sweep, channel=channel, absoluteTime=True)
                     name, counter = createSeriesName("index", counter, total=self.totalSeriesCount)

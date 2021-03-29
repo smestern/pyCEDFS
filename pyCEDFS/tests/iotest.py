@@ -1,13 +1,15 @@
 import pyCEDFS
 import matplotlib.pyplot as plt
-
+import glob
 
 
 def main():
-    test = pyCEDFS.CFS('C:\\Users\\SMest\\Documents\\Signal Demo\\Data\\Actions.cfs')
-    #test = pyCEDFS.CFS('debug.cfs')
-    test._debug_plot()
-    plt.legend()
+    cfs_files = glob.glob('C:\\Users\\SMest\\Documents\\Signal Demo\\Data\\*.cfs')
+    for i, fp in enumerate(cfs_files):
+        test = pyCEDFS.CFS(fp)
+        #test = pyCEDFS.CFS('debug.cfs')
+        test._debug_plot(fignum=i)
+        plt.legend()
     plt.show()
     return
 
