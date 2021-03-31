@@ -7,14 +7,10 @@ def main():
     cfs_files = glob.glob('C:\\Users\\SMest\\Documents\\Signal Demo\\Data\\*.cfs')
     for i, fp in enumerate(cfs_files):
         test = pyCEDFS.CFS(fp)
-        #test = pyCEDFS.CFS('debug.cfs')
         test._debug_plot(fignum=i)
         plt.legend()
     plt.show()
     return
-
-
-
 
 
 if __name__ == "__main__":

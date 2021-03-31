@@ -9,7 +9,7 @@
 *.user
 *.userosscache
 *.sln.docstates
-
+*.nwb
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
@@ -340,3 +340,4 @@ ASALocalRun/
 healthchecksdb
 *.cfs
 /pyCEDFS/debug.mat
+pyCEDFS/test.nwb
