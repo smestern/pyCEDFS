@@ -41,15 +41,17 @@ class CFS(object):
     """
     CFS File object. Represents a CFS File containing both sweep information and metadata (if availible).
     ______
-    Init:
-    cfsFilePath -> A str or os.path object pointing towards a CFS (.cfs) file
+    Init:  
+    cfsFilePath -> A str or os.path object pointing towards a CFS (.cfs) file  
+    stimChannels -> User defined stimulus channels as a list or python array  
+    respChannels -> User defined response channels as a list or python array  
     ______
     Return:
     CFS (obj) -> A python object with the CFS data as attributes. Sweep data can be accessed by CFS.dataX, CFS.dataY, CFS.dataC
 
     """
 
-    def __init__(self, cfsFilePath):
+    def __init__(self, cfsFilePath, stimChannels=None, respChannels=None, stimRespPairs=None):
 
         self.cfsFilePath = os.path.abspath(cfsFilePath)
         self.cfsFolderPath = os.path.dirname(self.cfsFilePath)
@@ -81,7 +83,7 @@ class CFS(object):
         test = CFS64.GetFileInfo(self._fileHandle, ctypes.byref(_channels),ctypes.byref(_dsvars), ctypes.byref(_fvars), ctypes.byref(_ds))
         
         self.channels = _channels.value
-        self.channelList = np.arange(1, _channels.value)
+        self.channelList = np.arange(0, _channels.value)
         self.datasetVarsCount = _dsvars.value
         self.fileVarsCount = _fvars.value
         self.datasets = _ds.value
@@ -92,19 +94,37 @@ class CFS(object):
         self.chVars = self._build_ch_vars()
         self.datasetChaVars = self._build_dsch_vars()
         self.sweeps = self.datasets ##Number of ds == num sweeps?
-        self.sweepList = np.arange(1,_ds.value+1)
+        self.sweepList = np.arange(0,_ds.value)
         
 
         ## Try to read sweep data ##
         self.dataX, self.dataY = self._read_data()
         #close the file?
         CFS64.CloseCFSFile(self._fileHandle)
+
+        #try to figure out what channels to use for pyabf like indexing
+        if stimChannels is None and respChannels is None:
+            log.warning("Both Stim Channels and resp Channels are None. Trying to determine programmatically...")
+            #for now just use first channel as stim second onwards as response.
+            self.stimChannels = [self.channelList[0]]
+            self.respChannels = [*self.channelList[1:]]
+        if stimChannels is None and respChannels is not None:
+            self.stimChannels = np.setdiff1d(self.channelList, respChannels)
+        if respChannels is None and stimChannels is not None:
+            self.respChannels = np.setdiff1d(self.channelList, stimChannels)
+
+        if len(self.stimChannels) > 1 and len(self.respChannels) > 1 and stimRespPairs is None:
+            log.warning("More than one resp and stimulus channels. \
+            Trying to determine progammatically, otherwise please provide pairings when intializing")
+        elif stimRespPairs is None and len(self.stimChannels)==1:
+            self.stimRespPairs = np.vstack((np.full(len(self.respChannels), self.stimChannels[0]), self.respChannels)).T
+        else:
+            pass
+
+
+        #Initilize pyABF-like attributes
         self._populate_attributes()
         self.setSweep(0)
-        return
-    def _build_attr_from_dict(self):
-
-
 
         return
 
@@ -263,6 +283,7 @@ class CFS(object):
             for x in np.arange(self.channels):
                 for a in np.arange(self.sweeps):
                     try:
+                        axes[x].set_title(self.chVars[x]['Channel Name'])
                         axes[int(x)].plot(self.dataX[int(x)][int(a)], self.dataY[int(x)][int(a)], label=f"{a}")
                     except:
                         print(f"Error Plotting channel {x} sweep {a}")
@@ -278,21 +299,23 @@ class CFS(object):
         ''' Populates attributes found on the ABF object from pyabf. Ideally
         ensuring that the CFS object can be put through the same pipeline as pyabf objects '''
         self.sweepCount = len(self.sweepList)
-        self.channelCount = len(self.channelList) + 1
+        self.channelCount = len(self.channelList)
         self.protocol = "Unknown"
+        self.protocolPath = "Unknown"
         self.cfsDateTime = datetime.datetime.fromtimestamp(os.path.getmtime(self.cfsFilePath))
         self.cfsFileComment = self.fileComment
         #Create a GUID on the fly
         self.fileGUID = str(uuid.uuid4())
         self.fileUUID = self.fileGUID
+        self.dataRate = 1/(self.dataX[0][0, 1] - self.dataX[0][0, 0])
 
-    def setSweep(self, sweepNumber, channel=None):
+    def setSweep(self, sweepNumber, channel=None, absoluteTime=False):
 
         if channel is None:
             channel = 0
 
         # basic error checking
-        if not (sweepNumber + 1) in self.sweepList:
+        if not (sweepNumber) in self.sweepList:
             msg = "Sweep %d not available (must be 0 - %d)" % (
                 sweepNumber, self.sweepCount-1)
             raise ValueError(msg)
@@ -324,9 +347,13 @@ class CFS(object):
             self.sweepLabelY = "Membrane Potential (mV)"
             self.sweepLabelC = "Applied Current (pA)"
 
+        if absoluteTime:
+            strt_time = np.sum([x[-1] for x in self.dataY[channel][:sweepNumber]])
+            self.sweepX = self.dataX[channel][sweepNumber] + strt_time
+        else:
+            self.sweepX = self.dataX[channel][sweepNumber]
         self.sweepY = self.dataY[channel][sweepNumber]
-        self.sweepX = self.dataX[channel][sweepNumber]
-        self.sweepC = self.dataY[0][sweepNumber]
+        self.sweepC = self.dataY[channel][sweepNumber]
 
         self.sweepPointCount = len(self.dataY[channel][sweepNumber])
 

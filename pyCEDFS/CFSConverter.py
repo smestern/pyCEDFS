@@ -3,6 +3,7 @@ Convert CFS files to NWB v2 files. Adapted from the CFSConverter.py from the X_t
 
 This script is subject to the same LICENSE as the original script.
 
+==========================================================================
 Allen Institute Software License - This software license is the 2-clause BSD license
 plus a third clause that prohibits redistribution for commercial purposes without further permission.
 
@@ -29,6 +30,7 @@ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PRO
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
 WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+================================================================================================
 
 """
 
@@ -236,7 +238,7 @@ class CFSConverter:
             raise ValueError("Found no sweeps.")
         elif not (cfs.channelCount > 0):
             raise ValueError("Found no channels.")
-        elif cfs.channelCount-1 != len(cfs.channelList):
+        elif cfs.channelCount != len(cfs.channelList):
             raise ValueError("Internal channel count is inconsistent.")
         elif cfs.sweepCount != len(cfs.sweepList):
             raise ValueError("Internal sweep count is inconsistent.")
@@ -255,20 +257,20 @@ class CFSConverter:
                         f"in file {cfs.cfsFilePath} using protocol {cfs.protocol}."
                     )
 
-    def _reduceChannelList(self, cfs):
+    def _reduceChannelList(self, cfs, _json_settings):
         """
         Return a reduced channel list taking into account the include and discard ADC channel settings.
         """
-
+        full_list = _json_settings['Resp Channels']
         if self.includeChannelList is not None:
 
             if self.includeChannelList == list("*"):
-                return cfs.adcNames
+                return full_list
 
-            return list(set(cfs.adcNames).intersection(self.includeChannelList))
+            return list(set(full_list).intersection(self.includeChannelList))
 
         elif self.discardChannelList is not None:
-            return list(set(cfs.adcNames) - set(cfs.adcNames).intersection(self.discardChannelList))
+            return list(set(full_list) - set(full_list).intersection(self.discardChannelList))
 
         raise ValueError("Unexpected include and discard channel settings.")
 
@@ -302,12 +304,16 @@ class CFSConverter:
 
         return min(self.cfss, key=getTimestamp)
 
-    def _getClampMode(self, cfs, channel):
+    def _getClampMode(self, cfs, channel, str_mode=''):
         """
         Return the clamp mode of the given channel.
         """
-
-        return cfs._adcSection.nTelegraphMode[channel]
+        cmode = None
+        if str_mode == 'IC':
+            cmode = I_CLAMP_MODE
+        elif str_mode == 'VC':
+            cmode = V_CLAMP_MODE
+        return cmode
 
     def _getMaxTimeSeriesCount(self):
         """
@@ -407,19 +413,23 @@ class CFSConverter:
 
         for file_index, cfs in enumerate(self.cfss):
 
+            _json_settings, jsonSource = self._findSettingsEntry(cfs)
+            log.debug(f"Using JSON settings for {jsonSource}.")
+
+
             stimulus_description = CFSConverter._getProtocolName(cfs.protocol)
             scale_factor = self._getScaleFactor(cfs, stimulus_description)
 
             for sweep in range(cfs.sweepCount):
-                cycle_id = createCycleID([file_index, sweep], total=self.totalSeriesCount)
-                for channel in range(cfs.channelCount):
+                cycle_id = int(createCycleID([file_index, sweep], total=self.totalSeriesCount))
+                for channel in _json_settings['Stim Channels']:
 
                     cfs.setSweep(sweep, channel=channel, absoluteTime=True)
                     name, counter = createSeriesName("index", counter, total=self.totalSeriesCount)
                     data = convertDataset(cfs.sweepC * scale_factor, self.compression)
                     conversion, _ = parseUnit(cfs.sweepUnitsC)
                     electrode = electrodes[channel]
-                    gain = cfs._dacSection.fDACScaleFactor[channel]
+                    gain = np.nan #cfs._dacSection.fDACScaleFactor[channel]
                     resolution = np.nan
                     starting_time = self._calculateStartingTime(cfs)
                     rate = float(cfs.dataRate)
@@ -429,14 +439,14 @@ class CFSConverter:
                             "protocol": cfs.protocol,
                             "protocolPath": cfs.protocolPath,
                             "file": os.path.basename(cfs.cfsFilePath),
-                            "name": cfs.dacNames[channel],
-                            "number": cfs._dacSection.nDACNum[channel],
+                            "name": cfs.chVars[channel]['Channel Name'],
+                            "number": int(cfs.chVars[channel]['Channel']),
                         },
                         sort_keys=True,
                         indent=4,
                     )
 
-                    seriesClass = getStimulusSeriesClass(self._getClampMode(cfs, channel))
+                    seriesClass = getStimulusSeriesClass(self._getClampMode(cfs, channel, str_mode=_json_settings['Clamp Mode']))
 
                     if seriesClass is not None:
                         stimulus = seriesClass(
@@ -595,26 +605,27 @@ class CFSConverter:
 
             stimulus_description = CFSConverter._getProtocolName(cfs.protocol)
             _, jsonSource = self._findSettingsEntry(cfs)
+            _json_settings = _
             log.debug(f"Using JSON settings for {jsonSource}.")
 
-            channelList = self._reduceChannelList(cfs)
-            log.debug(f"Channel lists: original {cfs.adcNames}, reduced {channelList}")
+            channelList = self._reduceChannelList(cfs, _json_settings)
+            log.debug(f"Channel lists: original {_json_settings['Resp Channels']}, reduced {channelList}")
 
             if len(channelList) == 0:
                 warnings.warn(
                     f"The channel settings {self.includeChannelList} (included) and {self.discardChannelList} (discarded) resulted "
-                    f"in an empty channelList for {cfs.cfsFilePath} with the unfiltered channels being {cfs.adcNames}."
+                    f"in an empty channelList for {cfs.cfsFilePath} with the unfiltered channels being {_json_settings['Resp Channels']}."
                 )
                 continue
 
             for sweep in range(cfs.sweepCount):
                 cycle_id = createCycleID([file_index, sweep], total=self.totalSeriesCount)
 
-                for channel in range(cfs.channelCount):
+                for channel in _json_settings['Resp Channels']:
 
-                    adcName = cfs.adcNames[channel]
-
-                    if adcName not in channelList:
+                    adcName = cfs.chVars[channel]['Channel Name']
+                    adcNum = cfs.chVars[channel]['Channel']
+                    if adcNum not in channelList:
                         continue
 
                     cfs.setSweep(sweep, channel=channel, absoluteTime=True)
@@ -622,7 +633,7 @@ class CFSConverter:
                     data = convertDataset(cfs.sweepY, self.compression)
                     conversion, _ = parseUnit(cfs.sweepUnitsY)
                     electrode = electrodes[channel]
-                    gain = cfs._adcSection.fADCProgrammableGain[channel]
+                    gain = np.nan #cfs._adcSection.fADCProgrammableGain[channel]
                     resolution = np.nan
                     starting_time = self._calculateStartingTime(cfs)
                     rate = float(cfs.dataRate)
@@ -633,13 +644,13 @@ class CFSConverter:
                             "protocolPath": cfs.protocolPath,
                             "file": os.path.basename(cfs.cfsFilePath),
                             "name": adcName,
-                            "number": cfs._adcSection.nADCNum[channel],
+                            "number": int(cfs.chVars[channel]['Channel']),
                         },
                         sort_keys=True,
                         indent=4,
                     )
 
-                    clampMode = self._getClampMode(cfs, channel)
+                    clampMode = self._getClampMode(cfs, channel, str_mode=_json_settings['Clamp Mode'])
                     settings = self._getAmplifierSettings(cfs, clampMode, adcName)
                     seriesClass = getAcquiredSeriesClass(clampMode)
 
