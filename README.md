@@ -22,9 +22,35 @@ y_units cfsfile.chVars[channel]['units'] #Other variables can be fetched from va
 
 ## Conversion to NWB
 Conversion to NWB is currently supported. Although requires some set up.
+The signal files have not standardized input/output channel names, nor anything indicating clamp mode (for Intracellular EPHYS [IC-EPHYS])
+Therefore the conversion process requires additional json input file(s) indicating which channels are in / out and the clamp mode (for IC-EPHYS).
+The json file should look like follows (found in template.json):
+```
+{
+    "Clamp Mode": "IC", //Indicates the clamp mode, should be one of: IC (current clamp), VC (voltage clamp)
+    "Stim Channels" : [0], //Indicates the stimuli channels. Can be multiple channels, written as [0, 2, 3].
+    "Resp Channels" : [1] //Indicates the response channels. Can be multiple channels, written as [1, 5, 6].
+    //Channels are indexed starting at 0
+}
+```
+These settings can either be applied globally (across all files in conversion). Or on a per-file basis. 
+To apply global settings, the file should be called in the CFS converter call:
 
+``` CFSConverter.CFSConverter('C:\\Users\\SMest\\Documents\\Signal Demo\\Data\\', "test2.nwb", globalSettingsFile='template.json') ```
 
-
+Otherwise settings can be applied on a per file basis. To do so, a json mimicking above, should be placed in the same directory as the file to be converted. This json should have the same file name as the file to be converted. For example
+```
+-Cell1.cfs
+-Cell1.json
+-Cell2.cfs
+-Cell2.json
+```
 
 
 ## Acknowledgements
+
+smestern would like to acknowledge funding support by CONP - In support of Open neuroscience
+``` 
+This work was supported in part by funding provided by Brain Canada, in partnership with Health
+Canada, for the Canadian Open Neuroscience Platform initiative.
+```
