@@ -80,7 +80,7 @@ class CFS(object):
         _dsvars = ctypes.c_short(14)
         _fvars = ctypes.c_short(14)
         _ds = ctypes.c_ushort(14)
-        test = CFS64.GetFileInfo(self._fileHandle, ctypes.byref(_channels),ctypes.byref(_dsvars), ctypes.byref(_fvars), ctypes.byref(_ds))
+        resp = CFS64.GetFileInfo(self._fileHandle, ctypes.byref(_channels),ctypes.byref(_dsvars), ctypes.byref(_fvars), ctypes.byref(_ds))
         
         self.channels = _channels.value
         self.channelList = np.arange(0, _channels.value)
@@ -123,8 +123,11 @@ class CFS(object):
 
 
         #Initilize pyABF-like attributes
-        self._populate_attributes()
-        self.setSweep(0)
+        try:
+            self._populate_attributes()
+            self.setSweep(0)
+        except:
+            log.warning("pyABF-like attributes failed to intialize")
 
         return
 
@@ -284,25 +287,26 @@ class CFS(object):
                 for a in np.arange(self.sweeps):
                     try:
                         axes[x].set_title(self.chVars[x]['Channel Name'])
+                        axes[x].set_ylabel(self.chVars[x]['Y Units'])
+                        axes[x].set_xlabel(self.chVars[x]['X Units'])
                         axes[int(x)].plot(self.dataX[int(x)][int(a)], self.dataY[int(x)][int(a)], label=f"{a}")
                     except:
-                        print(f"Error Plotting channel {x} sweep {a}")
+                        log.warning(f"Error Plotting channel {x} sweep {a}")
 
 
     ''' Below are functions adapting pyABF functionality. Ideally this allows the user to pass the CFS object
     thru the same pipeline as ABF '''
-    
-    def __initize_sweep(self):
-        pass
 
     def _populate_attributes(self):
         ''' Populates attributes found on the ABF object from pyabf. Ideally
         ensuring that the CFS object can be put through the same pipeline as pyabf objects '''
+        str_time = "%a %b %d %H:%M:%S %Y"
         self.sweepCount = len(self.sweepList)
         self.channelCount = len(self.channelList)
         self.protocol = "Unknown"
         self.protocolPath = "Unknown"
-        self.cfsDateTime = datetime.datetime.fromtimestamp(os.path.getmtime(self.cfsFilePath))
+        last_mod = time.ctime(int(os.path.getmtime(self.cfsFilePath)))
+        self.cfsDateTime = datetime.datetime.strptime(last_mod, str_time)
         self.cfsFileComment = self.fileComment
         #Create a GUID on the fly
         self.fileGUID = str(uuid.uuid4())
@@ -326,11 +330,10 @@ class CFS(object):
 
         self.sweepNumber = sweepNumber
         self.sweepChannel = channel
-        self.sweepUnitsY = self.chVars[channel]['Y Units'].split(" ")[0]
-        self.sweepUnitsC = self.chVars[0]['Y Units'].split(" ")[0]
+        self.sweepUnitsY = self.chVars[channel]['Y Units'].strip()
+        self.sweepUnitsC = self.chVars[0]['Y Units'].strip()
         self.sweepUnitsX = "sec"
-
-    
+        
         # standard labels
         self.sweepLabelY = "{} ({})".format(
             self.chVars[channel]['Channel Name'], self.chVars[channel]['Y Units'])
@@ -356,7 +359,16 @@ class CFS(object):
         self.sweepC = self.dataY[channel][sweepNumber]
 
         self.sweepPointCount = len(self.dataY[channel][sweepNumber])
+        self._check_proper_units()
 
+    def _check_proper_units(self):
+        """Checking for edge cases in units labels to allow for smoother transition
+        """
+        if 'pAmp' in self.sweepUnitsC or 'pa' in self.sweepUnitsC:
+            self.sweepUnitsC = 'pA'
+        if 'uV' in self.sweepUnitsY:
+            self.sweepUnitsY = 'mV'
+            self.sweepY  *= 0.001
     
             
         

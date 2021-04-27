@@ -1,0 +1,5 @@
+{
+    "Clamp Mode": "IC",
+    "Stim Channels" : [0],
+    "Resp Channels" : [1]
+}

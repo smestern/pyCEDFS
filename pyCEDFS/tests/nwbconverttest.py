@@ -9,6 +9,7 @@ import pyCEDFS
 
 def main():
     con = CFSConverter.CFSConverter('C:\\Users\\SMest\\Documents\\Signal Demo\\Data\\Actions.cfs', "test.nwb")
+    con = CFSConverter.CFSConverter('C:\\Users\\SMest\\Documents\\Signal Demo\\Data\\', "test2.nwb", globalSettingsFile='template.json')
     return
 
 

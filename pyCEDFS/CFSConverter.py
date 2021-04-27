@@ -79,6 +79,7 @@ class CFSConverter:
         inFileOrFolder,
         outFile,
         compression=True,
+        globalSettingsFile=None,
         searchSettingsFile=True,
         includeChannelList=None,
         discardChannelList=None,
@@ -113,6 +114,7 @@ class CFSConverter:
         self.discardChannelList = discardChannelList
 
         self.compression = compression
+        self.globalSettingsFile = globalSettingsFile
         self.searchSettingsFile = searchSettingsFile
 
         self._settings = self._getJSONFiles(inFileOrFolder)
@@ -179,6 +181,8 @@ class CFSConverter:
         the settings as value.
         """
 
+        
+
         if not self.searchSettingsFile:
             return None
 
@@ -199,6 +203,10 @@ class CFSConverter:
 
             warnings.warn(f"Could not find the JSON file {settings} with settings.")
 
+        if self.globalSettingsFile is not None:
+            log.debug("Loading global settings file")
+            self.globalSettingsDict = loadJSON(self.globalSettingsFile)
+
         if os.path.isfile(inFileOrFolder):
             log.debug("Searching JSON files for file conversion.")
             addDictEntry(d, inFileOrFolder)
@@ -216,7 +224,13 @@ class CFSConverter:
                 return d
             elif numFiles == 1:
                 # compatibility with old datasets with only one JSON file per folder
-                d[inFileOrFolder] = loadJSON(files[0])
+                if files[0] == self.globalSettingsFile:
+                    self.globalSettingsDict = loadJSON(files[0])
+                    d[inFileOrFolder] = loadJSON(files[0])
+                else:
+                    d[inFileOrFolder] = loadJSON(files[0])
+
+
                 return d
 
             # iterate over all cfs files
@@ -243,8 +257,14 @@ class CFSConverter:
         elif cfs.sweepCount != len(cfs.sweepList):
             raise ValueError("Internal sweep count is inconsistent.")
 
+        _json_settings, jsonSource = self._findSettingsEntry(cfs)
+        if _json_settings is not None:
+            channels = _json_settings['Resp Channels']
+        else:
+            channels = range(cfs.channelCount)
+
         for sweep in range(cfs.sweepCount):
-            for channel in range(cfs.channelCount):
+            for channel in channels:
                 cfs.setSweep(sweep, channel=channel)
 
                 if cfs.sweepUnitsX != "sec":
@@ -478,6 +498,10 @@ class CFSConverter:
             return None, None
 
         filename = cfs.cfsFilePath
+
+        if self.globalSettingsFile is not None:
+            return self.globalSettingsDict, filename
+
 
         try:
             return self._settings[filename], filename
