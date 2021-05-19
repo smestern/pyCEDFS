@@ -243,18 +243,7 @@ class CFS(object):
             for x in np.arange(1,self.datasets +1):
                 channel_p = self.datasetChaVars[ch][x-1]['points'] * 2 ##Pull the datasize. the points are multiplied by 2 to reflect the x and Y data which are stacked horizontally.
                 dtype = dataVarTypes[self.chVars[ch]['Type']][1] #the datatype of the channel
-                _dataarray = (dtype * channel_p)() ##Declare the array in memory for the function to return data into
-                chanData.argtypes = (ctypes.c_short,ctypes.c_short,ctypes.c_ushort,ctypes.c_long,ctypes.c_short, ctypes.POINTER(dtype), ctypes.c_long)
-                pointsRead = chanData(self._fileHandle, 
-                                ctypes.c_short(ch), ##Channel
-                                 ctypes.c_ushort(x), ##DS
-                                 ctypes.c_long(0), ##first element
-                                 ctypes.c_short(0), ###Number of elements to pull 0==all
-                                _dataarray, ###Dump into this array
-                                 ctypes.c_long(channel_p * 2))##Number of data points provided
-                data = np.ctypeslib.as_array(_dataarray) #convert the data into a numpy array
-                ds_y = data[:int(channel_p/2)] ##first half of the data is the Y value
-                ds_x = data[int(channel_p/2):] ##second half of the data appears to be X value, however if data is EQUALSPACED this is all zeros and we generate it later. 
+                ds_y, ds_x, pointsRead = self._read_data_incr(dtype, channel_p, ch, x)
                 
                 yscale = self.datasetChaVars[ch][x-1]['yscale']
                 yoffset = self.datasetChaVars[ch][x-1]['yoffset']
@@ -280,6 +269,33 @@ class CFS(object):
             dataY.append(ch_y)
         
         return dataX, dataY
+
+
+    def _read_data_incr(self, dtype, channel_p, ch, ds, step_size=10000):
+        chanData = CFS64.GetChanData
+        full_data = []
+        channel_p = int(channel_p/2)
+        rounds = (channel_p//step_size) + 1
+        cl_points = 0
+        for x in np.arange(rounds):
+            _dataarray = (dtype * step_size)() ##Declare the array in memory for the function to return data into
+            chanData.argtypes = (ctypes.c_short,ctypes.c_short,ctypes.c_int,ctypes.c_ulonglong,ctypes.c_int, ctypes.POINTER(dtype), ctypes.c_ulonglong)
+            Size_ar = ctypes.sizeof(_dataarray)
+            pointsRead = chanData(self._fileHandle, 
+                                        ch, ##Channel
+                                        ds, ##DS
+                                        x*step_size, ##first element
+                                        step_size, ###Number of elements to pull 0==all
+                                        _dataarray, ###Dump into this array
+                                        Size_ar)##Number of data points provided
+            cl_points += pointsRead
+            data = np.ctypeslib.as_array(_dataarray) #convert the data into a numpy array
+            ds_y = np.copy(data[:int(channel_p/2)]) ##first half of the data is the Y value
+            ds_x = data[int(channel_p/2):] ##second half of the data appears to be X value, however if data is EQUALSPACED this is all zeros and we generate it later.
+            full_data.append(ds_y)
+        ret_data_y = np.hstack(full_data)[:int(channel_p)]
+        ret_data_x = np.full(ret_data_y.shape[0], 0)
+        return ret_data_y, ret_data_x, cl_points
 
     def _debug_plot(self, fignum=0, figsize=(10,10)):
             fig, axes = plt.subplots(nrows = self.channels, num=fignum, figsize=figsize)
