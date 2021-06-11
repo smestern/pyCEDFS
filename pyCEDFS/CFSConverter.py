@@ -162,11 +162,16 @@ class CFSConverter:
         pyCEDFS.cfsHeaderDisplay.cfsInfoPage(cfs).generateHTML(saveAs=root + ".html")
 
     @staticmethod
-    def _getProtocolName(protocolName):
+    def _getProtocolName(protocolName, _json_settings):
         """
         Return the protocol/stimset name without the channel suffix.
+        If the user supplies a protocol name for this file we override the file description.
         """
-
+        proto_str = ['protocol', 'Protocol']
+        keys = list(_json_settings.keys())
+        proto_bool = np.isin(proto_str, keys)
+        if np.any(proto_bool):
+            protocolName = _json_settings[proto_str[np.nonzero(proto_bool)[0][0]]] #Grab the first instance of protocol
         return re.sub(r"_IN\d+$", "", protocolName)
 
     def _getJSONFiles(self, inFileOrFolder):
@@ -180,8 +185,6 @@ class CFSConverter:
         Returns a dict with the cfs file/folder name as key and a dictinonary with
         the settings as value.
         """
-
-        
 
         if not self.searchSettingsFile:
             return None
@@ -437,7 +440,7 @@ class CFSConverter:
             log.debug(f"Using JSON settings for {jsonSource}.")
 
 
-            stimulus_description = CFSConverter._getProtocolName(cfs.protocol)
+            stimulus_description = CFSConverter._getProtocolName(cfs.protocol, _json_settings)
             scale_factor = self._getScaleFactor(cfs, stimulus_description)
 
             for sweep in range(cfs.sweepCount):
@@ -456,7 +459,7 @@ class CFSConverter:
                     description = json.dumps(
                         {
                             "cycle_id": cycle_id,
-                            "protocol": cfs.protocol,
+                            "protocol": stimulus_description,
                             "protocolPath": cfs.protocolPath,
                             "file": os.path.basename(cfs.cfsFilePath),
                             "name": cfs.chVars[channel]['Channel Name'],
@@ -627,11 +630,11 @@ class CFSConverter:
 
         for file_index, cfs in enumerate(self.cfss):
 
-            stimulus_description = CFSConverter._getProtocolName(cfs.protocol)
+            
             _, jsonSource = self._findSettingsEntry(cfs)
             _json_settings = _
             log.debug(f"Using JSON settings for {jsonSource}.")
-
+            stimulus_description = CFSConverter._getProtocolName(cfs.protocol, _json_settings )
             channelList = self._reduceChannelList(cfs, _json_settings)
             log.debug(f"Channel lists: original {_json_settings['Resp Channels']}, reduced {channelList}")
 
@@ -664,7 +667,7 @@ class CFSConverter:
                     description = json.dumps(
                         {
                             "cycle_id": cycle_id,
-                            "protocol": cfs.protocol,
+                            "protocol": stimulus_description,
                             "protocolPath": cfs.protocolPath,
                             "file": os.path.basename(cfs.cfsFilePath),
                             "name": adcName,
