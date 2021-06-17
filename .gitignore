@@ -14,7 +14,7 @@
 *.h
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
-
+/pyCEDFS.egg-info/
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

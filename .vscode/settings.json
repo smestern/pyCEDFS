@@ -2,5 +2,6 @@
     "python.pythonPath": "C:\\Users\\SMest\\Anaconda3\\python.exe",
     "files.associations": {
         "ctype.h": "c"
-    }
+    },
+    "restructuredtext.confPath": ""
 }
