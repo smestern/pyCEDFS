@@ -9,7 +9,7 @@ Currently only functions on 64-bit installations of windows.
 
 ## Install  
 ``` 
-pip install git+https://github.com/smestern/pyCEDFS.git
+pip install pyCEDFS
 ```
 ## Example Usage
 ```python
