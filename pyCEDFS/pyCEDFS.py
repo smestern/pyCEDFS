@@ -11,10 +11,16 @@ import ctypes
 import matplotlib.pyplot as plt
 import pkg_resources
 import uuid
+
 # Load the shared library into c types. 
-dll_path = pkg_resources.resource_filename(__name__,"CFS64.dll")
-#TODO // Figure out how to handle 32-bit systems, linux, and so on
-CFS64 = ctypes.CDLL(dll_path)
+#if Python < 3.8
+if sys.version_info >= (3, 8):
+    os.add_dll_directory(os.path.dirname(os.path.realpath(__file__)))
+    CFS64 = ctypes.CDLL("CFS64.dll")
+else:
+    dll_path = pkg_resources.resource_filename(__name__,"CFS64.dll")
+    #TODO // Figure out how to handle 32-bit systems, linux, and so on
+    CFS64 = ctypes.CDLL(dll_path)
 
 import logging
 logging.basicConfig(level=logging.WARN)
