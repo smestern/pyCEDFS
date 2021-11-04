@@ -20,10 +20,10 @@ except FileNotFoundError:
     arch = "64-bit" if is_64bit() else "32-bit"
     e = (
         "Unable to load the CFS library. This probably means you need to "
-        "install the Visual C++ 2010 Redistributable library for your system "
-        "({0}). If this error persists, please file a bug report!"
+        "install the Visual C++ 2010 Runtime library for your system ({0}). "
+        "If this error persists, please file a bug report!"
     )
-    raise RuntimeError(e.format(arch))
+    raise RuntimeError(e.format(arch)) from None
 
 import logging
 logging.basicConfig(level=logging.WARN)
