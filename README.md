@@ -7,10 +7,14 @@ Leverages the CFS c library provided by CED to read data.
 Currently supports opening the file and reading metadata, and data 
 Currently only functions on 64-bit installations of windows. 
 
-## Install  
+## Install
+
+CED's CFS library requires the 64-bit Microsoft Visual Studio C++ 2010 Runtime in order to run, which can be downloaded [here](https://www.microsoft.com/en-ca/download/details.aspx?id=26999). Once installed, you can install the latest PyPI release of pyCEDFS using pip:
+
 ``` 
 pip install pyCEDFS
 ```
+
 ## Example Usage
 ```python
 import pyCEDFS
