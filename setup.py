@@ -7,7 +7,7 @@ with open(os.path.abspath(PATH_HERE+"/README.md"), encoding='utf-8') as f:
     print("loaded description: (%s lines)" % (long_description.count("\n")))
 
 setup(
-    name='pyCEDFS',python setup.py sdist
+    name='pyCEDFS',
     version='0.1.6.4',
     author='Smestern',
     author_email='smestern@gmail.com',
