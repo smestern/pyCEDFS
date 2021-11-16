@@ -8,7 +8,7 @@ with open(os.path.abspath(PATH_HERE+"/README.md"), encoding='utf-8') as f:
 
 setup(
     name='pyCEDFS',
-    version='0.1.6.4',
+    version='0.1.6.5',
     author='Smestern',
     author_email='smestern@gmail.com',
     packages=['pyCEDFS'],
