@@ -13,14 +13,17 @@ import pkg_resources
 import uuid
 
 # Load the shared library into c types. 
-#if Python < 3.8
-if sys.version_info >= (3, 8):
-    os.add_dll_directory(os.path.dirname(os.path.realpath(__file__)))
-    CFS64 = ctypes.CDLL("CFS64.dll")
-else:
-    dll_path = pkg_resources.resource_filename(__name__,"CFS64.dll")
-    #TODO // Figure out how to handle 32-bit systems, linux, and so on
-    CFS64 = ctypes.CDLL(dll_path)
+from .lib import get_dllpath, is_64bit
+try:
+    CFS64 = ctypes.CDLL(get_dllpath())
+except FileNotFoundError:
+    arch = "64-bit" if is_64bit() else "32-bit"
+    e = (
+        "Unable to load the CFS library. This probably means you need to "
+        "install the Visual C++ 2010 Runtime library for your system ({0}). "
+        "If this error persists, please file a bug report!"
+    )
+    raise RuntimeError(e.format(arch)) from None
 
 import logging
 logging.basicConfig(level=logging.WARN)
